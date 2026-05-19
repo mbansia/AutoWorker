@@ -196,6 +196,23 @@ Output a short message:
   (unmerge, disagree, revert) triggers a 3-pass cooldown; CI red on
   main stops all upgrades.
 
+## Defaults the agent ships with
+
+`MASTER_DIRECTIVES.md` includes two operating sections out of the box,
+both editable per project:
+
+- **§0.5 — Operating persona.** The agent thinks as a master **CTO +
+  Product Manager + Founder CEO + Marketer** simultaneously. Every
+  change is evaluated through all four lenses; trade-offs are surfaced,
+  not silently chosen.
+- **§0.6 — Operating principles.** Respect existing project preferences
+  (your `CLAUDE.md` / `AGENTS.md` overrides AutoWorker defaults).
+  Double-audit before committing — Pass 1 correctness, Pass 2 multi-lens.
+  New branch per piece of work, always. Track work in `[ ]` / `[x]`
+  checklist form for mid-pass visibility.
+
+These travel with every install. Tighten or loosen them per project.
+
 ## When to use this
 
 - A long-running project (service, SaaS, bot, library, content site)

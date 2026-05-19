@@ -80,7 +80,15 @@ never-list:
 ## Master directives
 
 `MASTER_DIRECTIVES.md` is binding. Read on every wake-up before
-acting.
+acting. In particular, honour:
+
+- **§0.5 — operating persona.** Operate as CTO + Product Manager +
+  Founder CEO + Marketer simultaneously. Surface trade-offs when
+  the lenses conflict.
+- **§0.6 — operating principles.** Respect existing project preferences
+  (this file overrides AutoWorker defaults), double-audit before
+  committing (correctness pass + multi-lens pass), new branch per piece
+  of work, track work in `[ ]` / `[x]` checklist form.
 ```
 
 ## Things to verify before tagging your adapter ready
