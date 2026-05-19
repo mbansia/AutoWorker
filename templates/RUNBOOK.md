@@ -7,6 +7,11 @@ issue (#{{TRACKER_ISSUE_NUMBER}}) and it has everything it needs.
 > Generated from the [AutoWorker](https://github.com/mbansia/AutoWorker)
 > template. Edit for project specifics. The two-part shape is canonical.
 
+The agent reads `MASTER_DIRECTIVES.md` §0.5 (operating persona — CTO,
+PM, CEO, Marketer) and §0.6 (operating principles — respect project
+prefs, double-audit, new branch always, `[ ]` checklists) on every
+pass. They apply throughout.
+
 ---
 
 ## Wake-up
@@ -133,13 +138,30 @@ to monitor mode. Do not try to find a way around §8.
 
 ### B3. Ship
 
+Per `MASTER_DIRECTIVES.md` §0.6: new branch always; double-audit before
+commit; track work in a `[ ]` / `[x]` checklist in the PR description.
+
 ```
 git fetch origin main && git checkout -b autoworker/<short-slug>
 <edit>
 <run the project's test command — ALL must pass>
+
+# === Double-audit (per §0.6 principle 2) ===
+# Pass 1 (correctness):
+#   - Does the diff do exactly what the directive asked? No more, no less.
+#   - Are tests sufficient to catch regressions in this surface?
+#   - Does any line cross MASTER_DIRECTIVES.md §8?
+# Pass 2 (multi-lens — CTO / PM / CEO / Marketer):
+#   - CTO: any architectural smells, perf cliffs, security implications?
+#   - PM: any unintended UX or scope creep? Any user-visible surprise?
+#   - CEO: opportunity cost — is this the right work this pass?
+#   - Marketer: any positioning / comms implications? Changelog entry needed?
+# Only proceed if both passes are clean.
+
 git add -A && git commit -m "<imperative summary>"
 git push -u origin autoworker/<short-slug>
-<open PR via the agent's MCP / CLI>
+<open PR via the agent's MCP / CLI — include the [ ] / [x] checklist
+ in the body>
 <merge per your adapter's agent-config pre-authorisation, if applicable>
 ```
 
