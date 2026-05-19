@@ -1,9 +1,10 @@
 # Adapters
 
-AutoWorker's prompts (`BOOTSTRAP_PROMPT.md`, `LOOP_PROMPT.md`) and templates
-(`MASTER_DIRECTIVES.md`, `RUNBOOK.md`) are agent-neutral markdown. The
-only agent-specific concern is **invocation**: how the prompt is handed
-to the agent on a schedule, and what config snippet the agent expects.
+AutoWorker's install procedure (in `README.md`), recurring prompt
+(`LOOP_PROMPT.md`), and templates (`MASTER_DIRECTIVES.md`, `RUNBOOK.md`)
+are all agent-neutral markdown. The only agent-specific concern is
+**invocation**: how the prompt is handed to the agent on a schedule,
+and what config snippet the agent expects.
 
 Each adapter is one file in this directory. It contains:
 
@@ -23,8 +24,10 @@ Each adapter is one file in this directory. It contains:
 
 ## Picking one
 
-Pass `--adapter <name>` to the bootstrap prompt, or paste the contents
-of `adapters/<name>.md` when the bootstrap asks. The bootstrap then:
+The install procedure in `README.md` asks the operator for an
+`ADAPTER` parameter. Default = whichever agent is running the install
+(e.g. `claude_code` if Claude Code is doing the install). The agent
+then:
 
 - Substitutes the adapter's invocation block into `loop_workflow.yml`.
 - Appends the adapter's config snippet to your agent-config file.

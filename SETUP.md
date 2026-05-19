@@ -1,11 +1,16 @@
 # Setup
 
-The fast path is [`BOOTSTRAP_PROMPT.md`](BOOTSTRAP_PROMPT.md) — paste it
-into an agent session in your target repo. The agent renders templates,
-creates the tracker issue, wires the crons, and opens a PR. ~5 minutes.
+The fast path is to **ask your coding agent to install AutoWorker for
+you**. In your target repo, say something like:
 
-This file documents the manual install for operators who want to do it
-themselves or audit each step.
+> Install AutoWorker from github.com/mbansia/AutoWorker
+
+The agent reads [`README.md`](README.md), which contains the install
+procedure it should follow: ask you ~6 parameters, render templates,
+create the tracker issue, wire the crons, open a PR.
+
+This file documents the **manual install** for operators who want to
+do it themselves or audit each step.
 
 ## What gets installed in your target repo
 
