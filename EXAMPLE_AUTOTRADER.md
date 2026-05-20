@@ -13,7 +13,7 @@ rewrite; v1 (AutoWorker as a general template) is the generalisation.
 |----------------------|--------------------------------------|
 | PROJECT_NAME         | AutoTrader_Codex                     |
 | REPO_SLUG            | mbansia/autotrader_codex             |
-| ADAPTER              | claude_code                          |
+| SETUP                | claude_code_github_actions           |
 | CRON_CADENCE         | `0 */3 * * *` (every 3 hours)        |
 | ENABLED_SOURCES      | diagnostics_endpoint, github_signals |
 | TRACKER_ISSUE_NUMBER | 28                                   |

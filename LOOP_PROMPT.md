@@ -93,8 +93,8 @@ When you find a candidate that survives the §8 check:
 - If any test fails: abandon, comment on the tracker, return to
   monitor mode. Do NOT debug-loop.
 - Commit, push, open PR with an imperative-summary title
-- Merge per your adapter's agent-config pre-authorisation if granted
-  (CLAUDE.md / AGENTS.md, populated by the bootstrap)
+- Merge per your setup's agent-config pre-authorisation if granted
+  (CLAUDE.md / AGENTS.md, populated by the install procedure)
 - Append to MASTER_DIRECTIVES.md §9 (learnings) — one-line entry
 - Record under "Shipped" in UPGRADE_BACKLOG.md
 

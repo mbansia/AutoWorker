@@ -5,9 +5,14 @@ name: AutoWorker loop
 # tracker issue, decides what to do, and either comments / opens a PR /
 # stays quiet.
 #
-# The `{{AGENT_INVOCATION}}` block below is filled in by the bootstrap
-# from the adapter you chose (`adapters/<adapter>.md`). It typically
-# calls the agent's CLI with the prompt from LOOP_PROMPT.md.
+# The `{{AGENT_INVOCATION}}` block below is filled in by the install
+# procedure from the setup you chose (`setups/<setup>.md`'s "GitHub
+# Actions invocation" block). It typically calls the agent's CLI with
+# the prompt from LOOP_PROMPT.md.
+#
+# This workflow file is only installed for setups whose filename ends
+# in `_github_actions`. External-scheduler setups (web Routines, CLI
+# `/loop`, Codex cloud, Antigravity) skip this file entirely.
 #
 # Run this strictly AFTER the data ingest cron so the agent sees fresh
 # tracker state. Either offset by a few minutes in the schedule, or
@@ -51,6 +56,6 @@ jobs:
           git config user.name "autoworker[bot]"
           git config user.email "autoworker@users.noreply.github.com"
 
-      # === Agent invocation — filled in by bootstrap from your adapter ===
+      # === Agent invocation — filled in by install procedure from your setup ===
       {{AGENT_INVOCATION}}
-      # =====================================================================
+      # =========================================================================

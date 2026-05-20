@@ -6,11 +6,32 @@ you**. In your target repo, say something like:
 > Install AutoWorker from github.com/mbansia/AutoWorker
 
 The agent reads [`README.md`](README.md), which contains the install
-procedure it should follow: ask you ~6 parameters, render templates,
-create the tracker issue, wire the crons, open a PR.
+procedure it should follow: ask you for `SETUP` + ~5 more parameters,
+render templates, create the tracker issue, wire the crons, open a PR
+that includes the platform-specific operator steps for the setup you
+chose.
 
 This file documents the **manual install** for operators who want to
 do it themselves or audit each step.
+
+## Pick your setup first
+
+Open [`setups/README.md`](setups/README.md) and pick the one that
+matches your agent + scheduling preference:
+
+| Setup | Agent | Scheduler |
+|---|---|---|
+| `claude_code_web` | Claude Code | claude.ai/code Routines |
+| `claude_code_cli_loop` | Claude Code | local CLI `/loop` |
+| `claude_code_github_actions` | Claude Code | GitHub Actions cron |
+| `codex_web` | OpenAI Codex | Codex cloud tasks |
+| `codex_cli_github_actions` | OpenAI Codex | GitHub Actions cron |
+| `antigravity` | Google Antigravity | Antigravity scheduler |
+| `generic_github_actions` | any CLI agent | GitHub Actions cron |
+
+Setups ending in `_github_actions` install **both** `autoworker_data.yml`
+and `autoworker_loop.yml`. The others install only `autoworker_data.yml`
+and rely on your platform's native scheduler for the loop.
 
 ## What gets installed in your target repo
 
@@ -20,16 +41,16 @@ RUNBOOK.md                                      # operational procedure (root)
 UPGRADE_BACKLOG.md                              # operator hint box (root)
 LOOP_PROMPT.md                                  # rendered, fed to the agent each pass
 
-CLAUDE.md  / AGENTS.md  (per chosen adapter)    # merged or created
+CLAUDE.md  / AGENTS.md  (per chosen setup)      # merged or created
 
 .autoworker/
-  config.yml                                    # adapter + cadence
+  config.yml                                    # setup + cadence
   sources.yml                                   # enabled data sources
 
 .github/
   workflows/
-    autoworker_data.yml                         # data ingest cron
-    autoworker_loop.yml                         # agent loop cron
+    autoworker_data.yml                         # data ingest cron (always)
+    autoworker_loop.yml                         # only for *_github_actions setups
   scripts/
     autoworker_data_ingest.py                   # ingest dispatcher
     autoworker_sources/
@@ -54,18 +75,18 @@ cd <your-target-repo>
 # 3. Parameters
 PROJECT_NAME="MyService"
 REPO_SLUG="myorg/myrepo"
-ADAPTER="claude_code"           # or codex / generic
+SETUP="claude_code_github_actions"   # see setups/README.md
 CRON_CADENCE='0 */3 * * *'
-CRON_CADENCE_LOOP='5 */3 * * *' # 5 min offset; loop also triggers from
-                                # data ingest's workflow_run
+CRON_CADENCE_LOOP='5 */3 * * *'      # 5 min offset (loop also triggers
+                                     # from data ingest's workflow_run)
 CRON_CADENCE_HUMAN='3h'
-TRACKER_ISSUE_NUMBER="0"        # filled after step 6
+TRACKER_ISSUE_NUMBER="0"             # filled after step 6
 
 substitute() {
   sed \
     -e "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" \
     -e "s|{{REPO_SLUG}}|${REPO_SLUG}|g" \
-    -e "s|{{ADAPTER}}|${ADAPTER}|g" \
+    -e "s|{{SETUP}}|${SETUP}|g" \
     -e "s|{{CRON_CADENCE}}|${CRON_CADENCE}|g" \
     -e "s|{{CRON_CADENCE_LOOP}}|${CRON_CADENCE_LOOP}|g" \
     -e "s|{{CRON_CADENCE_HUMAN}}|${CRON_CADENCE_HUMAN}|g" \
@@ -79,10 +100,19 @@ substitute < /tmp/autoworker/templates/RUNBOOK.md           > RUNBOOK.md
 substitute < /tmp/autoworker/templates/UPGRADE_BACKLOG.md   > UPGRADE_BACKLOG.md
 substitute < /tmp/autoworker/LOOP_PROMPT.md                 > LOOP_PROMPT.md
 
-# 5. Render workflows + scripts
+# 5. Render the data ingest workflow + script (always)
 substitute < /tmp/autoworker/templates/data_ingest.yml      > .github/workflows/autoworker_data.yml
 cp /tmp/autoworker/templates/data_ingest.py                   .github/scripts/autoworker_data_ingest.py
-substitute < /tmp/autoworker/templates/loop_workflow.yml    > .github/workflows/autoworker_loop.yml
+
+# 5b. If SETUP ends in "_github_actions", render the loop workflow too.
+case "$SETUP" in
+  *_github_actions)
+    substitute < /tmp/autoworker/templates/loop_workflow.yml > .github/workflows/autoworker_loop.yml
+    # Then open setups/${SETUP}.md and paste the "GitHub Actions
+    # invocation" YAML block into the {{AGENT_INVOCATION}} slot in
+    # the rendered .github/workflows/autoworker_loop.yml.
+    ;;
+esac
 
 # Copy the enabled data source modules
 for src in github_signals diagnostics_endpoint social_reddit; do
@@ -93,11 +123,9 @@ cp /tmp/autoworker/templates/sources/README.md .github/scripts/autoworker_source
 # 6. Edit MASTER_DIRECTIVES.md §§1–§8 — especially §8.
 #    Autopilot stays in monitor-only mode while §8 is blank.
 
-# 7. Adapter wiring — open adapters/${ADAPTER}.md from the template repo
-#    a. Copy the "GitHub Actions invocation" YAML block into the
-#       loop_workflow.yml's `{{AGENT_INVOCATION}}` placeholder.
-#    b. Append the "Config snippet" section to your agent-config file
-#       (CLAUDE.md or AGENTS.md — create if absent).
+# 7. Append setups/${SETUP}.md's "Config snippet" section to your
+#    agent-config file (CLAUDE.md for Claude Code setups, AGENTS.md for
+#    Codex / Antigravity setups). Create the file if absent.
 
 # 8. Configure data sources
 cat > .autoworker/sources.yml <<'EOF'
@@ -111,7 +139,7 @@ enabled:
 EOF
 
 cat > .autoworker/config.yml <<EOF
-adapter: ${ADAPTER}
+setup: ${SETUP}
 cadence: '${CRON_CADENCE}'
 EOF
 
@@ -124,66 +152,69 @@ gh issue create \
 # step against MASTER_DIRECTIVES.md, RUNBOOK.md, LOOP_PROMPT.md, and
 # the agent-config snippet.
 
-# 10. Set the secrets you need
-#     - Always: agent API key (ANTHROPIC_API_KEY / OPENAI_API_KEY / ...)
-#     - diagnostics_endpoint: BOT_URL, DIAGNOSTICS_TOKEN
-#     - X social: X_BEARER_TOKEN
-gh secret set ANTHROPIC_API_KEY --body "<your-key>"
+# 10. Set repo secrets per setups/${SETUP}.md.
+#     - Actions-based setups always need the agent API key
+#       (ANTHROPIC_API_KEY / OPENAI_API_KEY / ...).
+#     - External-scheduler setups (web Routines, CLI /loop, Codex
+#       cloud, Antigravity) use the platform's account auth, so no
+#       agent key in the repo.
+#     - Source-specific: BOT_URL + DIAGNOSTICS_TOKEN, X_BEARER_TOKEN, etc.
+gh secret set ANTHROPIC_API_KEY --body "<your-key>"  # example
 
 # 11. Commit + PR
 git checkout -b autoworker/install
 git add MASTER_DIRECTIVES.md RUNBOOK.md UPGRADE_BACKLOG.md LOOP_PROMPT.md \
-        CLAUDE.md AGENTS.md  .autoworker/ .github/
+        CLAUDE.md AGENTS.md .autoworker/ .github/
 git commit -m "Install AutoWorker"
 git push -u origin autoworker/install
 gh pr create --fill
+
+# 12. For external-scheduler setups: after the PR merges, follow the
+# "Operator setup steps" section in setups/${SETUP}.md to wire the
+# loop in your platform's scheduler (claude.ai/code Routines, Codex
+# cloud task, Antigravity scheduled task, or local /loop session).
 ```
 
-After the PR merges, the next cron tick runs ingest → tracker update →
-loop pass. Operator workload is reviewing the PR stream the agent
-opens.
+After the PR merges:
+
+- Actions-based setups: the next cron tick runs ingest → tracker
+  update → agent loop pass. Done.
+- External-scheduler setups: follow the platform-specific steps in
+  `setups/<SETUP>.md` to register the loop. Once registered, the data
+  ingest cron and the platform's scheduler both fire on cadence.
+
+Operator workload from then on: review the PR stream the agent opens.
 
 ## Prerequisites
 
-- **An agent CLI** — Claude Code, Codex CLI, or any CLI agent you've
-  written an adapter for.
-- **A coding-agent API key**, set as a repo secret (the adapter docs
-  list the name).
-- **GitHub Actions enabled** on the repo.
-- **A filled MASTER_DIRECTIVES.md §8** — without it the autopilot stays
-  in monitor-only mode. (Monitoring still works, but the agent won't
-  ship.)
-- **Optionally**: a diagnostics endpoint if you want
-  `diagnostics_endpoint` source. Otherwise the `github_signals` +
+- **An agent** — Claude Code, Codex (CLI or cloud), Antigravity, or any
+  CLI agent you've written a setup for.
+- **API key / account auth** — depends on chosen setup; check
+  `setups/<SETUP>.md` for what's needed.
+- **GitHub Actions enabled** on the repo (for at least the data
+  ingest workflow; Actions-based setups need it for the loop too).
+- **A filled `MASTER_DIRECTIVES.md` §8** — without it the autopilot
+  stays in monitor-only mode.
+- **Optionally**: a diagnostics endpoint if you enable
+  `diagnostics_endpoint`. Otherwise the `github_signals` +
   `social_reddit` sources work standalone.
-
-## What happens after install
-
-- **Data ingest cron** (`autoworker_data.yml`) fires on schedule. Polls
-  each enabled source, aggregates results, updates the `[autoworker]
-  Tracker` issue body, posts a heartbeat comment.
-- **Loop cron** (`autoworker_loop.yml`) triggers on `workflow_run`
-  immediately after ingest succeeds (or on its own schedule as a
-  fallback). The agent reads directives + tracker, runs one pass,
-  comments / opens PR / stays quiet.
-- **Operator** reviews the PR stream in their normal workflow. Hints
-  go in `UPGRADE_BACKLOG.md`. Directive changes go in
-  `MASTER_DIRECTIVES.md` §§1–§8 (the agent honours them on the next
-  pass). Pushback (unmerge, disagree-comment, manual revert) triggers
-  a 3-pass autopilot cooldown.
 
 ## Uninstall
 
 ```bash
 rm MASTER_DIRECTIVES.md RUNBOOK.md UPGRADE_BACKLOG.md LOOP_PROMPT.md
 rm -rf .autoworker
-rm .github/workflows/autoworker_data.yml .github/workflows/autoworker_loop.yml
+rm .github/workflows/autoworker_data.yml
+rm -f .github/workflows/autoworker_loop.yml   # only if installed
 rm -rf .github/scripts/autoworker_sources
 rm .github/scripts/autoworker_data_ingest.py
 
-# Remove the AutoWorker section from your agent-config file (keep
-# any other operator preferences).
+# Remove the AutoWorker section from your agent-config file (keep any
+# other operator preferences).
+
+# If you wired an external scheduler (web Routine, Codex cloud task,
+# Antigravity task, local /loop session) — stop / delete it there too.
 
 gh issue close <tracker-issue-number>
-gh secret delete ANTHROPIC_API_KEY  # whichever agent key you used
+gh secret delete ANTHROPIC_API_KEY   # whichever keys you set
 ```
