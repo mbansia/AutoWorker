@@ -3,8 +3,9 @@
 A template for setting up **recurring scheduled coding agents** that
 continuously improve a project across product, tech, security, UX,
 marketing, and user-feedback dimensions — driven by **master directives**
-you control. Agent-agnostic: works with Claude Code, OpenAI Codex CLI,
-or any CLI agent.
+you control. Setup-agnostic: works with Claude Code (web Routines / CLI
+`/loop` / GitHub Actions), OpenAI Codex (cloud / CLI), Google
+Antigravity, or any CLI agent in cron.
 
 ## Install
 
@@ -36,8 +37,9 @@ For a manual install you can drive yourself, see [`SETUP.md`](SETUP.md).
 - Confirm you're in a git repo. If not, ask the user to `git init`
   first.
 - Confirm there's a remote. If not, ask the user to add one.
-- Note which agent you are (Claude Code, Codex, etc.). You'll use this
-  to pick the default adapter.
+- Note which agent you are (Claude Code, Codex, etc.) and roughly
+  where you're running (web app, local CLI, GitHub Actions). You'll
+  use this to propose a default `SETUP`.
 
 ### Step 1 — Read this repo's template files
 
@@ -47,7 +49,7 @@ Fetch from `github.com/mbansia/AutoWorker`:
 - `SETUP.md`
 - `LOOP_PROMPT.md`
 - everything under `templates/`
-- everything under `adapters/`
+- everything under `setups/`
 
 You can use raw GitHub URLs, `gh api`, or your GitHub MCP tools —
 whichever is available.
@@ -55,30 +57,40 @@ whichever is available.
 ### Step 2 — Ask the operator parameters, one at a time
 
 Use your "ask user" tool (e.g. `AskUserQuestion`) — one question at a
-time, with sensible defaults proposed:
+time, with sensible defaults proposed. **Start with `SETUP`** — every
+other parameter follows from it.
 
 | Parameter | Notes |
 |---|---|
+| `SETUP` | Which (agent + scheduler) combo. One of: `claude_code_web`, `claude_code_cli_loop`, `claude_code_github_actions`, `codex_web`, `codex_cli_github_actions`, `antigravity`, `generic_github_actions`. Read `setups/README.md` for the menu + defaults. Propose the one that matches the agent + runtime running this install; let the operator override. |
 | `PROJECT_NAME` | Display name, e.g. "Acme". |
 | `REPO_SLUG` | `owner/name`. Autodetect from `git remote -v`. |
 | `PRIMARY_GOAL` | One-line outcome (e.g. "grow WAU 10% per quarter"). |
-| `ADAPTER` | One of `claude_code`, `codex`, `generic`. Default: whichever agent is running this (e.g. `claude_code` if you're Claude Code). |
 | `CRON_CADENCE` | Cron expression for the data ingest workflow. Default `0 */3 * * *` (every 3 hours). |
 | `ENABLED_SOURCES` | Multi-select: `diagnostics_endpoint` (needs `BOT_URL` + `DIAGNOSTICS_TOKEN`), `github_signals` (uses `GITHUB_TOKEN`), `social_reddit` (no auth). Default: `github_signals` only. |
 | `HAS_EXISTING_SPEC` | Y/N. If Y, ask `SPEC_PATH` and have `MASTER_DIRECTIVES.md` reference it instead of duplicating content. |
+
+After `SETUP` is chosen, read `setups/<SETUP>.md` end to end. It tells
+you which workflows to install, which agent-config file to append to,
+which secrets to surface, and what platform-specific steps the
+operator needs to do after the install PR merges.
+
+**A setup is "Actions-based"** if its filename ends in
+`_github_actions`. Otherwise it uses an external scheduler (web
+Routines / CLI `/loop` / Antigravity / Codex cloud).
 
 ### Step 3 — Render templates into the target repo
 
 Substitute every occurrence of these placeholders throughout the files
 listed below:
 
-- `{{PROJECT_NAME}}`, `{{REPO_SLUG}}`, `{{ADAPTER}}`,
+- `{{PROJECT_NAME}}`, `{{REPO_SLUG}}`, `{{SETUP}}`,
   `{{CRON_CADENCE}}`, `{{CRON_CADENCE_LOOP}}` (cadence + 5 min offset),
   `{{CRON_CADENCE_HUMAN}}` (e.g. `3h`), `{{TRACKER_ISSUE_NUMBER}}`
   (you'll know this after step 5; for now, leave it as `0` and patch
   later).
 
-File mappings:
+**Always-rendered file mappings (every setup):**
 
 | Template (source) | Target path in operator's repo |
 |---|---|
@@ -88,16 +100,26 @@ File mappings:
 | `LOOP_PROMPT.md` | `LOOP_PROMPT.md` |
 | `templates/data_ingest.yml` | `.github/workflows/autoworker_data.yml` |
 | `templates/data_ingest.py` | `.github/scripts/autoworker_data_ingest.py` |
-| `templates/loop_workflow.yml` | `.github/workflows/autoworker_loop.yml` |
 | `templates/sources/README.md` | `.github/scripts/autoworker_sources/README.md` |
 | `templates/sources/<name>.py` (per `ENABLED_SOURCES`) | `.github/scripts/autoworker_sources/<name>.py` |
 
-For `loop_workflow.yml`'s `{{AGENT_INVOCATION}}` slot: substitute the
-"GitHub Actions invocation" YAML block from `adapters/<ADAPTER>.md`.
+**Conditional — only for Actions-based setups (`*_github_actions`):**
 
-Append the "Config snippet" section from `adapters/<ADAPTER>.md` to
-the agent-config file (`CLAUDE.md` for claude_code, `AGENTS.md` for
-codex, etc.). Create the file if it doesn't exist.
+| Template (source) | Target path in operator's repo |
+|---|---|
+| `templates/loop_workflow.yml` | `.github/workflows/autoworker_loop.yml` |
+
+For Actions-based setups: substitute the "GitHub Actions invocation"
+YAML block from `setups/<SETUP>.md` into `loop_workflow.yml`'s
+`{{AGENT_INVOCATION}}` slot.
+
+For external-scheduler setups: **skip the loop workflow entirely**.
+The setup file's "Operator setup steps" section tells the operator
+how to wire the loop in their platform.
+
+Append the "Config snippet" section from `setups/<SETUP>.md` to the
+agent-config file (`CLAUDE.md` / `AGENTS.md` / whatever the setup
+file specifies). Create the file if it doesn't exist.
 
 ### Step 4 — Write the config files
 
@@ -113,7 +135,7 @@ enabled:
 `.autoworker/config.yml`:
 
 ```yaml
-adapter: {{ADAPTER}}
+setup: {{SETUP}}
 cadence: {{CRON_CADENCE}}
 ```
 
@@ -136,7 +158,7 @@ Branch: `autoworker/install`. Title: `Install AutoWorker`. Body:
 
 ```markdown
 ## Summary
-- Agent adapter: <ADAPTER>
+- Setup: <SETUP> (agent + scheduler)
 - Cadence: <CRON_CADENCE>
 - Sources enabled: <ENABLED_SOURCES>
 - Dimensions tracked: product, tech, security, UX, marketing, feedback
@@ -145,11 +167,14 @@ Branch: `autoworker/install`. Title: `Install AutoWorker`. Body:
 ## Operator next-steps (before merging)
 1. **Fill `MASTER_DIRECTIVES.md` §§1–§8.** Especially §8 (never-autoship).
    Autopilot will stay in monitor-only mode until §8 is non-default.
-2. Set repo secrets:
-   - `<AGENT_API_KEY>` (per `adapters/<ADAPTER>.md`)
-   - <source-specific secrets if any>
-3. Merge. The next scheduled tick runs ingest → tracker update → loop
-   pass. Review PRs the agent opens on `autoworker/*` branches.
+2. Set repo secrets per `setups/<SETUP>.md`:
+   - <agent API key, source-specific secrets if any>
+3. Merge.
+
+## Operator next-steps (after merging)
+<inline-quote the "Operator setup steps" section from
+ setups/<SETUP>.md here so the operator sees the exact platform
+ actions to take next>
 
 Tracker issue: #<TRACKER_ISSUE_NUMBER>
 ```
@@ -158,9 +183,14 @@ Tracker issue: #<TRACKER_ISSUE_NUMBER>
 
 Output a short message:
 
+- "Setup chosen: <SETUP>."
 - "Created tracker issue #X."
 - "Opened install PR #Y."
-- "Secrets to set after merge: ..." (list per chosen adapter + sources)
+- "Secrets to set after merge: ..." (list per chosen setup + sources)
+- "After merge, follow the 'Operator setup steps' block in the PR
+  description (also in `setups/<SETUP>.md`) to finish wiring the
+  loop in your platform." (Skip this line for `*_github_actions`
+  setups — those are fully unattended after merge.)
 - "First scheduled run: <approx time based on cadence>."
 
 ### Constraints — agent must obey
@@ -176,22 +206,28 @@ Output a short message:
   `github_signals` only.
 - **Do NOT skip the tracker issue creation.** The loop has no input
   surface without it.
+- **Do NOT install `autoworker_loop.yml`** for external-scheduler
+  setups — it would clash with the scheduler the operator's platform
+  will run.
 
 ---
 
 ## What it does (after install)
 
-- **Data ingest cron** (`autoworker_data.yml`) fires on the configured
-  cadence. Polls each enabled data source, aggregates results,
-  updates the `[autoworker] Tracker` issue body, posts a heartbeat
-  comment.
-- **Loop cron** (`autoworker_loop.yml`) triggers immediately after on
-  `workflow_run` (or via its own schedule as fallback). The agent
+- **Data ingest cron** (`autoworker_data.yml`, always installed) fires
+  on the configured cadence. Polls each enabled data source, aggregates
+  results, updates the `[autoworker] Tracker` issue body, posts a
+  heartbeat comment.
+- **Agent loop** runs the same cadence — either via the
+  `autoworker_loop.yml` GitHub Actions workflow (for `*_github_actions`
+  setups) or via your platform's native scheduler (Claude Code web
+  Routines, CLI `/loop`, Codex cloud, Antigravity, etc.). The agent
   reads `MASTER_DIRECTIVES.md` + tracker, runs one pass per
-  `RUNBOOK.md`: classifies signals, comments on the tracker, optionally
-  opens ONE PR from defined safe surfaces.
+  `RUNBOOK.md`: classifies signals, comments on the tracker,
+  optionally opens ONE PR from defined safe surfaces.
 - **One PR per pass**, `<` 200 lines, tests must pass before commit,
-  never crosses `MASTER_DIRECTIVES.md` §8.
+  five-pass persona audit before merge, never crosses
+  `MASTER_DIRECTIVES.md` §8.
 - **Backpressure**: un-reviewed PRs pause shipping; operator pushback
   (unmerge, disagree, revert) triggers a 3-pass cooldown; CI red on
   main stops all upgrades.
@@ -254,20 +290,25 @@ You decide what's in scope by what you fill in. Sections are
 independent — the agent can ship a UX tweak while staying silent on
 marketing.
 
-## Agent-agnostic
+## Setups (agent + scheduler)
 
-Three adapters out of the box:
+A **setup** is one (agent + scheduler) pair. Pick one at install time.
+Seven ship out of the box (see [`setups/README.md`](setups/README.md)
+for the menu):
 
-- [`adapters/claude_code.md`](adapters/claude_code.md) — Anthropic
-  Claude Code, via `claude --print` in cron (or `/loop` locally).
-- [`adapters/codex.md`](adapters/codex.md) — OpenAI Codex CLI, via
-  `codex exec` in cron.
-- [`adapters/generic.md`](adapters/generic.md) — template for any
-  other CLI agent.
+| Setup | Agent | Scheduler |
+|---|---|---|
+| [`claude_code_web`](setups/claude_code_web.md) | Claude Code | claude.ai/code Routines |
+| [`claude_code_cli_loop`](setups/claude_code_cli_loop.md) | Claude Code | local CLI `/loop` |
+| [`claude_code_github_actions`](setups/claude_code_github_actions.md) | Claude Code | GitHub Actions cron |
+| [`codex_web`](setups/codex_web.md) | OpenAI Codex | Codex cloud tasks |
+| [`codex_cli_github_actions`](setups/codex_cli_github_actions.md) | OpenAI Codex | GitHub Actions cron |
+| [`antigravity`](setups/antigravity.md) | Google Antigravity | Antigravity scheduler |
+| [`generic_github_actions`](setups/generic_github_actions.md) | any CLI agent | GitHub Actions cron |
 
 Prompts (`LOOP_PROMPT.md`) and templates (`MASTER_DIRECTIVES.md`,
-`RUNBOOK.md`) are agent-neutral markdown. Adapter files cover only
-invocation + the agent-config snippet.
+`RUNBOOK.md`) are agent-neutral markdown. Setup files cover only
+invocation, scheduler-specific wiring, and the agent-config snippet.
 
 ## Repo layout
 
@@ -278,19 +319,23 @@ LOOP_PROMPT.md          # the recurring pass prompt (rendered into target)
 EXAMPLE_AUTOTRADER.md   # case study: AutoWorker on a production trading bot
 LICENSE                 # MIT
 
-adapters/               # one file per supported coding-agent CLI
+setups/                 # one file per (agent + scheduler) combo
   README.md
-  claude_code.md
-  codex.md
-  generic.md
+  claude_code_web.md
+  claude_code_cli_loop.md
+  claude_code_github_actions.md
+  codex_web.md
+  codex_cli_github_actions.md
+  antigravity.md
+  generic_github_actions.md
 
 templates/              # rendered into target repo by the install procedure
   MASTER_DIRECTIVES.md    # the binding spec (§§1–§9)
   RUNBOOK.md              # operational procedure for a pass
   UPGRADE_BACKLOG.md      # operator hint box (hints / hold / shipped)
-  data_ingest.yml         # GitHub Actions cron: data ingest
+  data_ingest.yml         # GitHub Actions cron: data ingest (always installed)
   data_ingest.py          # cron dispatcher: loads + runs enabled sources
-  loop_workflow.yml       # GitHub Actions cron: agent loop pass
+  loop_workflow.yml       # GitHub Actions cron: only for *_github_actions setups
   sources/                # built-in data source modules
     README.md
     diagnostics_endpoint.py

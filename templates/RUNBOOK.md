@@ -16,13 +16,16 @@ project prefs, five-pass persona audit before merge, new branch always,
 
 ## Wake-up
 
-A pass starts in one of three ways:
+A pass starts in one of three ways (the right one for you depends on
+your install setup — see `setups/{{SETUP}}.md`):
 
-1. **Scheduled** — `.github/workflows/autoworker_loop.yml` runs at
-   `{{CRON_CADENCE}}` and invokes the agent CLI configured by your
-   adapter (`adapters/{{ADAPTER}}.md`).
-2. **`/loop`** — for Claude Code: `/loop {{CRON_CADENCE_HUMAN}} "do one
-   AutoWorker pass per RUNBOOK.md"`.
+1. **Scheduled** — either `.github/workflows/autoworker_loop.yml`
+   (for `*_github_actions` setups) or your platform's native scheduler
+   (claude.ai/code Routines, Codex cloud task, Antigravity scheduled
+   task) runs at `{{CRON_CADENCE}}` and invokes the agent against
+   `LOOP_PROMPT.md`.
+2. **`/loop`** — for the local CLI setup: `/loop {{CRON_CADENCE_HUMAN}}
+   "do one AutoWorker pass per RUNBOOK.md"`.
 3. **Manual** — operator opens an agent session, says "do an autoworker
    pass".
 
@@ -185,7 +188,7 @@ git add -A && git commit -m "<imperative summary>"
 git push -u origin autoworker/<short-slug>
 <open PR via the agent's MCP / CLI — include both the [ ] / [x] checklist
  AND the five-pass audit verdicts (one line per persona) in the body>
-<merge per your adapter's agent-config pre-authorisation, only if all
+<merge per your setup's agent-config pre-authorisation, only if all
  five audits passed>
 ```
 
