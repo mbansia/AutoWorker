@@ -8,9 +8,9 @@ issue (#{{TRACKER_ISSUE_NUMBER}}) and it has everything it needs.
 > template. Edit for project specifics. The two-part shape is canonical.
 
 The agent reads `MASTER_DIRECTIVES.md` §0.5 (operating persona — CTO,
-PM, CEO, Marketer) and §0.6 (operating principles — respect project
-prefs, double-audit, new branch always, `[ ]` checklists) on every
-pass. They apply throughout.
+PM, Founder CEO, QA, Marketer) and §0.6 (operating principles — respect
+project prefs, five-pass persona audit before merge, new branch always,
+`[ ]` checklists) on every pass. They apply throughout.
 
 ---
 
@@ -138,31 +138,55 @@ to monitor mode. Do not try to find a way around §8.
 
 ### B3. Ship
 
-Per `MASTER_DIRECTIVES.md` §0.6: new branch always; double-audit before
-commit; track work in a `[ ]` / `[x]` checklist in the PR description.
+Per `MASTER_DIRECTIVES.md` §0.6: new branch always; **five-pass persona
+audit** before merge; track work in a `[ ]` / `[x]` checklist in the
+PR description.
 
 ```
 git fetch origin main && git checkout -b autoworker/<short-slug>
 <edit>
 <run the project's test command — ALL must pass>
 
-# === Double-audit (per §0.6 principle 2) ===
-# Pass 1 (correctness):
-#   - Does the diff do exactly what the directive asked? No more, no less.
-#   - Are tests sufficient to catch regressions in this surface?
-#   - Does any line cross MASTER_DIRECTIVES.md §8?
-# Pass 2 (multi-lens — CTO / PM / CEO / Marketer):
-#   - CTO: any architectural smells, perf cliffs, security implications?
-#   - PM: any unintended UX or scope creep? Any user-visible surprise?
-#   - CEO: opportunity cost — is this the right work this pass?
-#   - Marketer: any positioning / comms implications? Changelog entry needed?
-# Only proceed if both passes are clean.
+# === Five-pass persona audit (per §0.6 principle 2) ===
+# Run each pass independently. Do NOT collapse them into one sweep.
+# Document each verdict in the PR description (one line per persona).
+#
+# Pass 1 — CTO:
+#   - Technical correctness; diff does what the directive asked?
+#   - Architecture fit — any boundary violations or layering smells?
+#   - Performance — any cliffs (N+1, sync I/O on hot paths, etc.)?
+#   - Security — auth, input validation, secrets handling?
+#   - §8 NEVER-AUTOSHIP check: does any line cross the policy boundary?
+#
+# Pass 2 — Product Manager:
+#   - Intent match — exactly the directive scope, no more, no less?
+#   - UX side-effects — any user-visible behaviour change unintended?
+#   - Scope creep — anything in the diff that wasn't requested?
+#
+# Pass 3 — Founder CEO:
+#   - Opportunity cost — is this the right work this pass given §1 goals?
+#   - Strategic risk — anything that constrains future moves?
+#   - Resource allocation — proportionate effort to expected impact?
+#
+# Pass 4 — QA:
+#   - Are tests sufficient to catch regressions on the changed surface?
+#   - Edge cases — failure modes, empty/null inputs, concurrency?
+#   - Reproducibility — if it breaks in prod, can the failure be reproduced?
+#
+# Pass 5 — Marketer:
+#   - Positioning impact — does this affect how the product reads?
+#   - Changelog — entry needed? Where?
+#   - Public comms — anything to surface to users or upstream?
+#
+# Only proceed if ALL FIVE passes are clean. Any fail → amend the work
+# and re-run from Pass 1.
 
 git add -A && git commit -m "<imperative summary>"
 git push -u origin autoworker/<short-slug>
-<open PR via the agent's MCP / CLI — include the [ ] / [x] checklist
- in the body>
-<merge per your adapter's agent-config pre-authorisation, if applicable>
+<open PR via the agent's MCP / CLI — include both the [ ] / [x] checklist
+ AND the five-pass audit verdicts (one line per persona) in the body>
+<merge per your adapter's agent-config pre-authorisation, only if all
+ five audits passed>
 ```
 
 **Constraints:**

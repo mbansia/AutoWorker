@@ -202,14 +202,15 @@ Output a short message:
 both editable per project:
 
 - **§0.5 — Operating persona.** The agent thinks as a master **CTO +
-  Product Manager + Founder CEO + Marketer** simultaneously. Every
-  change is evaluated through all four lenses; trade-offs are surfaced,
+  Product Manager + Founder CEO + QA + Marketer** simultaneously. Every
+  change is evaluated through all five lenses; trade-offs are surfaced,
   not silently chosen.
 - **§0.6 — Operating principles.** Respect existing project preferences
   (your `CLAUDE.md` / `AGENTS.md` overrides AutoWorker defaults).
-  Double-audit before committing — Pass 1 correctness, Pass 2 multi-lens.
-  New branch per piece of work, always. Track work in `[ ]` / `[x]`
-  checklist form for mid-pass visibility.
+  **Five-pass persona audit before merging** — one independent pass
+  per persona (CTO → PM → CEO → QA → Marketer), verdicts documented in
+  the PR. New branch per piece of work, always. Track work in `[ ]` /
+  `[x]` checklist form for mid-pass visibility.
 
 These travel with every install. Tighten or loosen them per project.
 
