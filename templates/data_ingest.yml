@@ -14,6 +14,11 @@ name: AutoWorker data ingest
 #   - X_BEARER_TOKEN                 (for the social_x source — opt-in)
 #   - GITHUB_TOKEN                    (provided automatically, used for
 #                                      the github_signals source)
+#
+# If `browser_usability` is enabled in .autoworker/sources.yml, the
+# workflow installs Playwright + headless Chromium on the fly (~30s
+# overhead per run). Screenshots are uploaded as a workflow artifact
+# named `autoworker-browser-screenshots`.
 
 on:
   schedule:
@@ -36,7 +41,7 @@ concurrency:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +55,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml
 
+      - name: Install Playwright (if browser_usability is enabled)
+        id: pw
+        run: |
+          if grep -E '^\s*-\s*browser_usability(\s*:|\s*$)' .autoworker/sources.yml 2>/dev/null; then
+            echo "Installing Playwright + headless Chromium..."
+            pip install playwright
+            playwright install chromium --with-deps
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "browser_usability not enabled — skipping Playwright install."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run data ingest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,3 +78,12 @@ jobs:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: |
           python .github/scripts/autoworker_data_ingest.py
+
+      - name: Upload browser screenshots (if any)
+        if: ${{ steps.pw.outputs.enabled == 'true' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoworker-browser-screenshots
+          path: autoworker_screenshots/
+          if-no-files-found: ignore
+          retention-days: 30
