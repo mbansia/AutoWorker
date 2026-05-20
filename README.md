@@ -67,7 +67,7 @@ other parameter follows from it.
 | `REPO_SLUG` | `owner/name`. Autodetect from `git remote -v`. |
 | `PRIMARY_GOAL` | One-line outcome (e.g. "grow WAU 10% per quarter"). |
 | `CRON_CADENCE` | Cron expression for the data ingest workflow. Default `0 */3 * * *` (every 3 hours). |
-| `ENABLED_SOURCES` | Multi-select: `diagnostics_endpoint` (needs `BOT_URL` + `DIAGNOSTICS_TOKEN`), `github_signals` (uses `GITHUB_TOKEN`), `social_reddit` (no auth). Default: `github_signals` only. |
+| `ENABLED_SOURCES` | Multi-select: `diagnostics_endpoint` (needs `BOT_URL` + `DIAGNOSTICS_TOKEN`), `github_signals` (uses `GITHUB_TOKEN`), `social_reddit` (no auth), `browser_usability` (Playwright; needs a `base_url` + journey definitions; adds ~30s/run). Default: `github_signals` only. |
 | `HAS_EXISTING_SPEC` | Y/N. If Y, ask `SPEC_PATH` and have `MASTER_DIRECTIVES.md` reference it instead of duplicating content. |
 
 After `SETUP` is chosen, read `setups/<SETUP>.md` end to end. It tells
@@ -204,6 +204,12 @@ Output a short message:
 - **If the operator selected `diagnostics_endpoint`** but doesn't have
   a service running, ask them to confirm or downgrade to
   `github_signals` only.
+- **If the operator selected `browser_usability`**, ask for: (a) the
+  `base_url` to test against — strongly prefer staging over production
+  if any journey is destructive (signup, purchase, account changes);
+  (b) at least one journey definition with a few steps. Render
+  these directly into `.autoworker/sources.yml`. Warn that journeys
+  pointing at production hit real user state.
 - **Do NOT skip the tracker issue creation.** The loop has no input
   surface without it.
 - **Do NOT install `autoworker_loop.yml`** for external-scheduler
@@ -218,6 +224,13 @@ Output a short message:
   on the configured cadence. Polls each enabled data source, aggregates
   results, updates the `[autoworker] Tracker` issue body, posts a
   heartbeat comment.
+- **Browser-based usability checks** (`browser_usability` source, opt-in)
+  spin up headless Chromium each tick and run operator-defined user
+  journeys: load page → click → fill → assert. Failures, slow loads,
+  and broken selectors surface as anomalies on the tracker; screenshots
+  upload as a workflow artifact. The agent's QA-persona audit pass can
+  also re-run the same journeys against a staging URL to verify a PR
+  before merging.
 - **Agent loop** runs the same cadence — either via the
   `autoworker_loop.yml` GitHub Actions workflow (for `*_github_actions`
   setups) or via your platform's native scheduler (Claude Code web
@@ -341,6 +354,7 @@ templates/              # rendered into target repo by the install procedure
     diagnostics_endpoint.py
     github_signals.py
     social_reddit.py
+    browser_usability.py    # headless Chromium via Playwright
 ```
 
 ## Acknowledgements

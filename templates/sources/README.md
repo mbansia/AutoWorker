@@ -25,6 +25,53 @@ block.
 - **github_signals** — open issues (especially labelled `bug`,
   `regression`, `urgent`), recently failed CI runs.
 - **social_reddit** — public Reddit search for a project name. No auth.
+- **browser_usability** — spins up headless Chromium via Playwright and
+  runs operator-defined user journeys (load page → click → fill →
+  assert). Surfaces failures + slow loads + missing elements as
+  anomalies. Saves screenshots; the data ingest workflow uploads them
+  as a workflow artifact named `autoworker-browser-screenshots`. Adds
+  ~30s overhead per run (only when enabled).
+
+### `browser_usability` quick example
+
+```yaml
+enabled:
+  - browser_usability:
+      base_url: https://app.example.com
+      performance:
+        warn_above_ms: 3000
+        critical_above_ms: 10000
+      journeys:
+        - name: homepage_loads
+          steps:
+            - goto: /
+            - wait_for: "h1"
+            - assert_text: { selector: "h1", contains: "Welcome" }
+            - screenshot: homepage
+        - name: signup_flow
+          steps:
+            - goto: /signup
+            - fill: { selector: "[name=email]", value: "test+autoworker@example.com" }
+            - fill: { selector: "[name=password]", value: "TestPass123!" }
+            - click: "button[type=submit]"
+            - wait_for_url: "/verify"
+```
+
+Supported step actions: `goto`, `wait_for`, `wait_for_url`, `fill`,
+`click`, `assert_visible`, `assert_text`, `assert_url_contains`,
+`screenshot`. See `browser_usability.py` docstring for the full
+reference.
+
+Best paired with a staging URL — pointing `base_url` at production
+means the journeys hit production user state. For destructive flows
+(sign-up, purchase), use a dedicated test environment.
+
+**Security note:** `.autoworker/sources.yml` is plain text in the
+repo. Don't put real credentials in `fill` values. Use disposable
+test accounts on a staging environment. If a journey genuinely
+needs a secret, extend `browser_usability.py` to read it from
+`os.environ` and inject it via a repo secret in the data ingest
+workflow.
 
 ## Add your own
 

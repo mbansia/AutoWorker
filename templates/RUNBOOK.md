@@ -175,6 +175,11 @@ git fetch origin main && git checkout -b autoworker/<short-slug>
 #   - Are tests sufficient to catch regressions on the changed surface?
 #   - Edge cases — failure modes, empty/null inputs, concurrency?
 #   - Reproducibility — if it breaks in prod, can the failure be reproduced?
+#   - For UX-touching changes: if browser_usability is enabled, re-run
+#     the relevant journeys against a staging URL and attach the
+#     verdict (passed / failed + screenshot ref) to the PR description.
+#     The data ingest tracker comment is the baseline; this pass is
+#     the "after my change" delta.
 #
 # Pass 5 — Marketer:
 #   - Positioning impact — does this affect how the product reads?

@@ -149,6 +149,12 @@ Direction for **how it should feel**.
 - **Key flows:** login, onboarding, the core action.
 - **Anti-patterns:** dark patterns, opaque errors, broken back-button —
   things the agent must not introduce.
+- **Verification:** if a change touches a key flow listed above, the
+  QA pass (§0.6 principle 2 Pass 4) should run the relevant
+  `browser_usability` journey against a staging URL before merging.
+  Enable the source in `.autoworker/sources.yml`; the agent then has
+  both the ingest results AND the option to re-run journeys during
+  its pass.
 
 ## 6. Marketing
 
@@ -167,6 +173,13 @@ Direction for **what counts as a signal**.
 
 - **Channels we monitor:** GitHub issues, Discord, X, Reddit, support
   inbox, in-app feedback — list what's actually live.
+- **Browser-based usability checks:** if the `browser_usability` source
+  is enabled in `.autoworker/sources.yml`, the data ingest cron spins
+  up headless Chromium each tick and runs the journeys defined there.
+  Journey failures, slow page loads, and broken selectors land on the
+  tracker as anomalies. Use this for: critical user flows (login,
+  signup, checkout), top-of-funnel pages, anywhere a regression would
+  silently hurt conversion.
 - **Regression criteria:** how the agent decides "this is a bug" vs
   "this is noise".
 - **Feature-ask criteria:** when feedback should surface as a backlog
