@@ -83,12 +83,13 @@ never-list:
 acting. In particular, honour:
 
 - **§0.5 — operating persona.** Operate as CTO + Product Manager +
-  Founder CEO + Marketer simultaneously. Surface trade-offs when
+  Founder CEO + QA + Marketer simultaneously. Surface trade-offs when
   the lenses conflict.
 - **§0.6 — operating principles.** Respect existing project preferences
-  (this file overrides AutoWorker defaults), double-audit before
-  committing (correctness pass + multi-lens pass), new branch per piece
-  of work, track work in `[ ]` / `[x]` checklist form.
+  (this file overrides AutoWorker defaults), run a **five-pass persona
+  audit** before merging (one independent pass per persona — CTO, PM,
+  CEO, QA, Marketer — with the verdicts documented in the PR), new
+  branch per piece of work, track work in `[ ]` / `[x]` checklist form.
 ```
 
 ## Things to verify before tagging your adapter ready
