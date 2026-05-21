@@ -63,8 +63,17 @@ Skip Part B entirely if ANY of these are true:
 - Operator pushback on a recent PR within the last 3 passes
 - More than one open un-reviewed `autoworker/*` PR
 
-If all four are false, find ONE thing to ship from these surfaces in
-priority order:
+If all four are false:
+
+**FIRST check MASTER_DIRECTIVES.md §0.7 (Bootstrap priorities).**
+If that section has unchecked `[ ]` items, ship the TOP item this
+pass — overrides the surfaces below. Branch
+`autoworker/bootstrap-<slug>`. In the same PR, mark the item `[x]`
+in §0.7 and (if applicable) enable the now-available data source in
+`.autoworker/sources.yml`. See RUNBOOK.md §B0 for the full procedure.
+
+Otherwise (when §0.7 is empty), find ONE thing to ship from these
+surfaces in priority order:
 
 1. Anomaly-driven bug fix (regression detected in Part A)
 2. UPGRADE_BACKLOG.md "Hints" section

@@ -107,7 +107,40 @@ The cron heartbeat is the all-clear signal.
 
 If all four are false, find ONE thing to ship.
 
+### B0. Bootstrap priorities — close observability gaps first
+
+**Before any other work selection**, read `MASTER_DIRECTIVES.md` §0.7
+(Bootstrap priorities). If that section has any unchecked `[ ]` items,
+the autopilot's job this pass is to ship the **top item** — overrides
+§B1 below.
+
+The reason: the autopilot drives improvements based on data on the
+tracker. If logs, errors, product metrics, or marketing-channel data
+aren't observable, the loop runs blind. §0.7 is the list of surfaces
+that need to exist before normal work-selection makes sense.
+
+When picking a bootstrap item:
+
+1. Read its `target` and `acceptance` lines verbatim — they tell you
+   where the change lands and what counts as done.
+2. Branch `autoworker/bootstrap-<short-slug>` so the PR title is
+   obviously a bootstrap item.
+3. Diff target < 200 lines + tests (same hard cap as B1).
+4. After shipping, update §0.7 in the same PR — replace `[ ]` with
+   `[x]` on the line you closed, and add a sub-line: `closed in #<PR>`.
+5. **Five-pass persona audit still applies**, including the QA pass
+   (run the new endpoint / verify the new SDK fires).
+6. Also update `.autoworker/sources.yml` in the same PR if the new
+   surface enables one of the built-in sources (e.g. you added a
+   diagnostics endpoint → also enable `diagnostics_endpoint`).
+
+When §0.7 has no unchecked `[ ]` items (all entries are `[x]` or
+section is empty), the autopilot returns to normal §B1 work selection
+on the next pass.
+
 ### B1. Work-selection surfaces (priority order)
+
+(Apply only if §B0 is empty — i.e. all bootstrap items are closed.)
 
 1. **Anomaly-driven bug fix** — regression detected in Part A with a
    clear cause.
