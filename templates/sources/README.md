@@ -31,6 +31,18 @@ block.
   anomalies. Saves screenshots; the data ingest workflow uploads them
   as a workflow artifact named `autoworker-browser-screenshots`. Adds
   ~30s overhead per run (only when enabled).
+- **sentry_signals** — pulls recent unresolved Sentry issues for a
+  project + 24h error event total. Anomalies fire on fatal issues
+  with high counts and on error-rate spikes. Needs `SENTRY_AUTH_TOKEN`.
+- **posthog_signals** — fetches PostHog insights you flag for
+  monitoring; compares the latest value vs the prior period and warns
+  on configurable drop thresholds (e.g. WAU drops >20%). Needs
+  `POSTHOG_API_KEY`.
+- **app_logs** — generic log endpoint poller. Works against any HTTP
+  endpoint that returns a JSON list of log entries with level + message
+  fields. Counts errors/warns in the window and samples the most recent
+  errors into the tracker. Auth header is configurable; env vars
+  interpolate via `${VAR_NAME}`.
 
 ### `browser_usability` quick example
 

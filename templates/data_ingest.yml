@@ -14,6 +14,11 @@ name: AutoWorker data ingest
 #   - X_BEARER_TOKEN                 (for the social_x source — opt-in)
 #   - GITHUB_TOKEN                    (provided automatically, used for
 #                                      the github_signals source)
+#   - SENTRY_AUTH_TOKEN              (for sentry_signals)
+#   - POSTHOG_API_KEY                (for posthog_signals)
+#   - APP_LOGS_TOKEN (or similar)    (for app_logs — name matches what
+#                                     you reference in the source's
+#                                     auth_header config)
 #
 # If `browser_usability` is enabled in .autoworker/sources.yml, the
 # workflow installs Playwright + headless Chromium on the fly (~30s
@@ -76,6 +81,9 @@ jobs:
           BOT_URL: ${{ secrets.BOT_URL }}
           DIAGNOSTICS_TOKEN: ${{ secrets.DIAGNOSTICS_TOKEN }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          APP_LOGS_TOKEN: ${{ secrets.APP_LOGS_TOKEN }}
         run: |
           python .github/scripts/autoworker_data_ingest.py
 

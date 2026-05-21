@@ -67,8 +67,63 @@ other parameter follows from it.
 | `REPO_SLUG` | `owner/name`. Autodetect from `git remote -v`. |
 | `PRIMARY_GOAL` | One-line outcome (e.g. "grow WAU 10% per quarter"). |
 | `CRON_CADENCE` | Cron expression for the data ingest workflow. Default `0 */3 * * *` (every 3 hours). |
-| `ENABLED_SOURCES` | Multi-select: `diagnostics_endpoint` (needs `BOT_URL` + `DIAGNOSTICS_TOKEN`), `github_signals` (uses `GITHUB_TOKEN`), `social_reddit` (no auth), `browser_usability` (Playwright; needs a `base_url` + journey definitions; adds ~30s/run). Default: `github_signals` only. |
+| `ENABLED_SOURCES` | Multi-select. Built-ins: `diagnostics_endpoint` (needs `BOT_URL` + `DIAGNOSTICS_TOKEN`), `github_signals` (uses `GITHUB_TOKEN`), `social_reddit` (no auth), `browser_usability` (Playwright; needs `base_url` + journeys; ~30s/run), `sentry_signals` (needs `SENTRY_AUTH_TOKEN` + org + project), `posthog_signals` (needs `POSTHOG_API_KEY` + project_id), `app_logs` (configurable log endpoint). Default: `github_signals` only — the **Observability audit** step below may auto-suggest more. |
 | `HAS_EXISTING_SPEC` | Y/N. If Y, ask `SPEC_PATH` and have `MASTER_DIRECTIVES.md` reference it instead of duplicating content. |
+
+### Step 2.5 — Observability audit (detect what's missing)
+
+**Before rendering anything**, inspect the target repo for existing
+observability surfaces. The autopilot is data-driven, so the first
+thing AutoWorker installs into projects with gaps is the observability
+itself.
+
+Check (read-only, do not edit):
+
+1. **Diagnostics / health endpoint** — grep the codebase for routes
+   matching `/api/diagnostics`, `/api/health`, `/healthz`, `/_health`.
+   Also check `templates/diagnostics_post.py`-style cron history.
+2. **Error tracking** — look for SDKs in deps:
+   - `package.json`: `@sentry/*`, `@rollbar/*`, `@bugsnag/*`
+   - `requirements.txt` / `pyproject.toml`: `sentry-sdk`, `rollbar`, `bugsnag`
+   - `Cargo.toml`: `sentry`
+   - `go.mod`: `getsentry/sentry-go`
+3. **Product analytics** — look for SDKs:
+   - `posthog-js`, `posthog-node`, `posthog` (Python)
+   - `mixpanel`, `@mixpanel/*`
+   - `@amplitude/*`, `amplitude`
+4. **Structured logging** — look for libraries with structured output:
+   - `winston`, `pino`, `bunyan` (Node)
+   - `structlog`, `loguru`, `python-json-logger`
+   - `zerolog`, `zap` (Go)
+   - `tracing` (Rust)
+5. **Marketing analytics** — `gtag`, `react-ga4`, `analytics.js`,
+   `plausible-tracker`, `fathom`.
+
+For each category found, ask the operator to confirm: "Detected X.
+Should I enable the corresponding data source?" Auto-add to
+`ENABLED_SOURCES` on confirmation.
+
+For each category NOT found, ask: "I don't see X. Add it as a
+bootstrap priority?" If yes, append to `MASTER_DIRECTIVES.md` §0.7:
+
+```
+- [ ] Add <category> (<recommended tool>)
+    - why: <one-line rationale — e.g. "autopilot can't act on errors it can't see">
+    - target: <best guess at file path based on repo structure>
+    - acceptance: <what proves it's done — e.g. "test error in dev surfaces in Sentry within 30s">
+```
+
+If §0.7 ends up with any items after this step, **prepend** a
+prominent warning to the install PR body:
+
+> ⚠️ **Bootstrap priorities active.** This project lacks observability
+> surfaces. The autopilot's first N passes will be dedicated to
+> closing those gaps before any other work. See
+> `MASTER_DIRECTIVES.md` §0.7.
+
+Mention which sources are blocked until the corresponding bootstrap
+item ships (e.g. `sentry_signals` is dormant until error tracking is
+integrated).
 
 After `SETUP` is chosen, read `setups/<SETUP>.md` end to end. It tells
 you which workflows to install, which agent-config file to append to,
@@ -238,6 +293,12 @@ Output a short message:
   reads `MASTER_DIRECTIVES.md` + tracker, runs one pass per
   `RUNBOOK.md`: classifies signals, comments on the tracker,
   optionally opens ONE PR from defined safe surfaces.
+- **Observability bootstrap** runs first if the project lacks
+  diagnostics surfaces. The install audits the target repo for error
+  tracking / product analytics / structured logs / health endpoints,
+  populates `MASTER_DIRECTIVES.md` §0.7 with the gaps, and the loop
+  ships one bootstrap PR per pass (e.g. "Add `/api/diagnostics`
+  endpoint", "Integrate Sentry") until §0.7 is empty.
 - **One PR per pass**, `<` 200 lines, tests must pass before commit,
   five-pass persona audit before merge, never crosses
   `MASTER_DIRECTIVES.md` §8.
@@ -247,8 +308,8 @@ Output a short message:
 
 ## Defaults the agent ships with
 
-`MASTER_DIRECTIVES.md` includes two operating sections out of the box,
-both editable per project:
+`MASTER_DIRECTIVES.md` includes three operating sections out of the
+box, all editable per project:
 
 - **§0.5 — Operating persona.** The agent thinks as a master **CTO +
   Product Manager + Founder CEO + QA + Marketer** simultaneously. Every
@@ -260,6 +321,12 @@ both editable per project:
   per persona (CTO → PM → CEO → QA → Marketer), verdicts documented in
   the PR. New branch per piece of work, always. Track work in `[ ]` /
   `[x]` checklist form for mid-pass visibility.
+- **§0.7 — Bootstrap priorities.** If the project lacks observability
+  (logs / errors / product analytics / marketing data) the autopilot's
+  first job — overriding all other work selection — is to **build
+  those surfaces**. The install audits the repo and populates §0.7
+  with detected gaps; the loop ships one bootstrap item per pass until
+  §0.7 is empty, then enters normal work-selection mode.
 
 These travel with every install. Tighten or loosen them per project.
 
@@ -355,6 +422,9 @@ templates/              # rendered into target repo by the install procedure
     github_signals.py
     social_reddit.py
     browser_usability.py    # headless Chromium via Playwright
+    sentry_signals.py       # Sentry issues + event rate
+    posthog_signals.py      # PostHog insights + drop detection
+    app_logs.py             # generic log endpoint poller
 ```
 
 ## Acknowledgements

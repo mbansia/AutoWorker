@@ -91,6 +91,54 @@ per-section in §§1–§8 if your project needs different.
    as a tracker comment (for monitor-only or escalation passes) so the
    operator can see progress mid-pass without asking.
 
+## 0.7 Bootstrap priorities
+
+**The autopilot cannot drive improvements blind.** If the project
+lacks the observability surfaces AutoWorker needs (a way to see logs,
+errors, product metrics, marketing-channel data), the autopilot's
+**first job — before any other work selection** — is to build those
+surfaces.
+
+The install procedure audits the target repo for existing
+observability and populates this list with what's missing. Each item
+is one PR's worth of work. As the autopilot ships each item, it
+**checks it off in place** (`[ ]` → `[x]`) and appends `closed in
+#<PR>` on a sub-line — items stay in the file as history rather than
+disappearing. Once every item is `[x]`, the autopilot enters normal
+work-selection mode (per `RUNBOOK.md` §B1).
+
+**Only the operator adds new bootstrap items** to this section. The
+autopilot only ever checks off existing ones.
+
+Built-in items the install may add here:
+
+- **Health / diagnostics endpoint** — an HTTP route that returns JSON
+  with current cycle health, error counts, recent events. Enables
+  `diagnostics_endpoint` source.
+- **Error tracking** — Sentry (recommended), Rollbar, or Bugsnag. SDK
+  integrated into the app's startup path. Enables `sentry_signals`
+  source if Sentry.
+- **Product analytics** — PostHog (recommended, open), Mixpanel, or
+  Amplitude. SDK integrated into the client and/or server. Enables
+  `posthog_signals` source if PostHog.
+- **Structured logging** — JSON logs with consistent level + message
+  fields, ideally piped to a queryable destination. Enables the
+  `app_logs` source.
+- **Marketing analytics** — Google Analytics 4, Plausible, Fathom, or
+  similar. Required if §6 (marketing) directives reference data the
+  agent should consume.
+
+**Format for each bootstrap item:**
+
+```
+- [ ] <Item title>
+    - why: <one-line rationale>
+    - target: <where in the codebase it lands, e.g. `src/server/health.ts`>
+    - acceptance: <what proves it's done, e.g. "`/api/diagnostics` returns 200 with the JSON shape in `templates/diagnostics_schema.json`">
+```
+
+(empty — items appear here after install audits the repo)
+
 ## 1. Top-level goals
 
 State 1–5 outcomes. Each goal should be measurable enough that the agent
