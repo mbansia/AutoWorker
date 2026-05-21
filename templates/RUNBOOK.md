@@ -148,12 +148,74 @@ on the next pass.
 3. **Master directives §§1–§7 open items** — anything explicitly listed
    as a roadmap theme, perf budget, accessibility gap, doc drift, etc.
 4. **Test coverage gaps** in non-§8 modules.
-5. **Code quality** — dead code, TODO/FIXME, lint waivers without
-   reasons.
+5. **TODO / FIXME** — dated TODOs, FIXMEs with clear acceptance.
 6. **Doc drift** — broken links, stale section refs, outdated examples.
+7. **Dead-code cleanup** — unreferenced exports / functions / files /
+   unused dependencies. See §B1.1 below for the procedure. **Frequency
+   cap**: at most one cleanup PR per 5 passes (check
+   `UPGRADE_BACKLOG.md` "Shipped" entries tagged `dimension: cleanup`).
 
 If no surface yields a safe candidate, stay in monitor-only mode. Do not
 invent work.
+
+### B1.1. Dead-code cleanup — procedure + preservation
+
+The autopilot keeps the codebase tidy by removing genuinely
+unreferenced code on a slow cadence. Two guarantees the operator
+relies on:
+
+1. **Conservative detection.** Only "truly unreferenced" qualifies —
+   not "looks unused". Use the right static-analysis tool for the
+   stack:
+   - Python: `vulture --min-confidence 80` (or `ruff` rules
+     `F401`/`F841` for narrower scope)
+   - TypeScript / JavaScript: `ts-prune`, `knip`, or `unimported`
+   - Go: `staticcheck` (the `U1000` check) or `unused`
+   - Rust: `cargo +nightly udeps` (for deps), `cargo machete`
+   The agent runs whichever the project already has wired up — it
+   does NOT add a new analysis tool as part of a cleanup PR; that's
+   a separate concern.
+
+2. **Preservation — "keep copies".** Every cleanup PR is recoverable:
+   - **Git history is the primary preservation.** Deleted code is
+     one `git show <parent-sha>:<path>` away. The PR description
+     MUST include: "Code removed in this PR is preserved at
+     parent commit `<sha>`. To recover: `git show <sha>:<path>`."
+   - **Optional archive branch.** If `.autoworker/config.yml` has
+     `archive_branch: true`, before deleting, push the unchanged
+     files to a long-lived `autoworker-archive` branch under
+     `archive/<YYYY-MM-DD>/<original-path>`. Commit message there:
+     "archive: pre-deletion snapshot from #<PR>". If the branch
+     doesn't exist yet, create it from current `main` (orphan branch
+     is fine — it's snapshot storage, not project history). The
+     archive branch is never force-pushed or deleted.
+
+**Scope guardrails per cleanup PR:**
+
+- ≤ 200 lines removed, ≤ 5 files affected.
+- Never touch anything in `MASTER_DIRECTIVES.md` §8.
+- Never remove anything imported by code that runs at startup or in
+  a critical path the directives §2.critical_user_journeys lists.
+- Skip files where any test, fixture, or build script references the
+  symbol — even indirectly via string lookup. The QA pass must `grep`
+  for the symbol name across the whole repo (not just the analyser's
+  output) and find zero non-definition hits before approving.
+- If the change touches a public API surface (anything exported from
+  an `index.ts`, `__init__.py`, or similar), it stops being a cleanup
+  and becomes a contract change → escalate to the operator instead
+  of shipping.
+
+**Five-pass audit emphasis for cleanup PRs:**
+
+- **CTO**: did anything cross §8?
+- **PM**: is removing this surface-area change the operator might
+  not expect? If unsure, escalate.
+- **CEO**: opportunity cost — is this worth a pass slot vs. the
+  alternatives in §B1?
+- **QA**: ran `grep` for symbol names? Tests pass? Sample a few
+  recent commits to check no in-flight branch references these
+  symbols.
+- **Marketer**: not relevant for cleanups; document `n/a`.
 
 ### B2. Never-autoship check
 

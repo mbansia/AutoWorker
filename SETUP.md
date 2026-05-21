@@ -141,6 +141,9 @@ EOF
 cat > .autoworker/config.yml <<EOF
 setup: ${SETUP}
 cadence: '${CRON_CADENCE}'
+archive_branch: false   # set true to push pre-deletion snapshots of
+                        # autopilot-removed code to the autoworker-archive
+                        # branch in addition to normal git history.
 EOF
 
 # 9. Create the tracker issue

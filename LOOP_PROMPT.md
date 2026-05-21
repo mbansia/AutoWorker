@@ -80,8 +80,15 @@ surfaces in priority order:
 3. MASTER_DIRECTIVES.md §§1–§7 open items (roadmap themes, perf
    budgets, accessibility gaps, doc drift the directive calls out)
 4. Test coverage gaps in non-§8 modules
-5. Code quality (dead code, TODO/FIXME, lint waivers without reasons)
+5. TODO / FIXME with clear acceptance criteria
 6. Documentation drift (typos, stale refs, broken links)
+7. Dead-code cleanup (per RUNBOOK.md §B1.1). At MOST one cleanup
+   PR per 5 passes. Check UPGRADE_BACKLOG.md "Shipped" entries
+   tagged `dimension: cleanup` for cadence. Preservation guarantee:
+   PR description must cite the parent SHA so removed code is one
+   `git show` away. If `.autoworker/config.yml` has
+   `archive_branch: true`, also push the pre-deletion snapshot to
+   the `autoworker-archive` branch before deleting.
 
 If NONE yields a safe candidate, stay in monitor-only mode. Do not
 invent work.

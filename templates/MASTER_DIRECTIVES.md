@@ -172,6 +172,12 @@ Direction for **how it's built**.
 - **Code quality bar:** test coverage target, lint rules, perf budgets.
 - **Deprecations in flight:** what's being phased out — the agent should
   help, not block.
+- **Code hygiene:** the autopilot may remove genuinely unreferenced
+  exports / functions / files on a slow cadence (≤ 1 cleanup PR per
+  5 passes, ≤ 200 lines + 5 files per PR). Removals are preserved in
+  git history; the PR description references the parent SHA. Opt in
+  to an explicit archive branch by setting `archive_branch: true` in
+  `.autoworker/config.yml`. See `RUNBOOK.md` §B1.1.
 
 ## 4. Security
 
@@ -251,6 +257,11 @@ PR with a `needs-operator-review` label, but it must not merge.
 - This file's §§1–§8 (only §9 is append-only)
 - The runbook's hard-stop rules
 - Anything labelled `do-not-autoship` on GitHub
+- **Public API surface during dead-code cleanup.** Anything exported
+  from a package's index file (`index.ts`, `__init__.py`, etc.)
+  cannot be removed by autopilot cleanup even if static analysis
+  flags it unused — removing an export is a contract change.
+  Escalate to the operator instead.
 
 **Project-specific never-touch list — fill in:**
 
