@@ -192,6 +192,9 @@ enabled:
 ```yaml
 setup: {{SETUP}}
 cadence: {{CRON_CADENCE}}
+archive_branch: false   # set true to push pre-deletion snapshots of any
+                        # autopilot-removed code to the autoworker-archive
+                        # branch (git history preserves it either way).
 ```
 
 ### Step 5 — Create the persistent tracker issue
@@ -299,6 +302,14 @@ Output a short message:
   populates `MASTER_DIRECTIVES.md` §0.7 with the gaps, and the loop
   ships one bootstrap PR per pass (e.g. "Add `/api/diagnostics`
   endpoint", "Integrate Sentry") until §0.7 is empty.
+- **Code hygiene** — on a slow cadence (≤ 1 PR per 5 passes), the
+  autopilot removes genuinely unreferenced code using language-
+  appropriate static analysis (`vulture`, `ts-prune`, `knip`,
+  `staticcheck`, etc.). Conservative criterion ("truly unreferenced",
+  not "looks unused"). Git history preserves everything; opt in to a
+  dedicated `autoworker-archive` branch with `archive_branch: true`
+  in `.autoworker/config.yml`. Public API surface is never removed
+  by autopilot — that's escalated.
 - **One PR per pass**, `<` 200 lines, tests must pass before commit,
   five-pass persona audit before merge, never crosses
   `MASTER_DIRECTIVES.md` §8.
